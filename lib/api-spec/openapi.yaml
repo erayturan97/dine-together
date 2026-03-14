@@ -1,0 +1,571 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Vybe - Group Dining Decider API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: users
+    description: User operations
+  - name: groups
+    description: Group session operations
+  - name: restaurants
+    description: Restaurant operations
+  - name: votes
+    description: Vote operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/google:
+    post:
+      operationId: authGoogle
+      tags: [auth]
+      summary: Authenticate with Google token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleAuthRequest"
+      responses:
+        "200":
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/guest:
+    post:
+      operationId: authGuest
+      tags: [auth]
+      summary: Create guest session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuestAuthRequest"
+      responses:
+        "200":
+          description: Guest session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/friends:
+    get:
+      operationId: getFriends
+      tags: [users]
+      summary: Get user's friend list
+      responses:
+        "200":
+          description: Friends list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /users/search:
+    get:
+      operationId: searchUsers
+      tags: [users]
+      summary: Search users by name or email
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /groups:
+    post:
+      operationId: createGroup
+      tags: [groups]
+      summary: Create a new group session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupRequest"
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+    get:
+      operationId: getMyGroups
+      tags: [groups]
+      summary: Get groups I'm part of
+      responses:
+        "200":
+          description: My groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+
+  /groups/{groupId}:
+    get:
+      operationId: getGroup
+      tags: [groups]
+      summary: Get group details
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Group details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  /groups/{groupId}/join:
+    post:
+      operationId: joinGroup
+      tags: [groups]
+      summary: Accept invitation and join group
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Joined successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  /groups/{groupId}/start:
+    post:
+      operationId: startSwiping
+      tags: [groups]
+      summary: Start the swiping session
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartSwipingRequest"
+      responses:
+        "200":
+          description: Swiping started with restaurants
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  /groups/{groupId}/restaurants:
+    get:
+      operationId: getGroupRestaurants
+      tags: [groups]
+      summary: Get restaurants for this group session
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of restaurants to swipe
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Restaurant"
+
+  /groups/{groupId}/results:
+    get:
+      operationId: getGroupResults
+      tags: [groups]
+      summary: Get group voting results
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Results ranked by votes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RestaurantResult"
+
+  /groups/{groupId}/votes:
+    post:
+      operationId: submitVote
+      tags: [votes]
+      summary: Submit a vote for a restaurant
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoteRequest"
+      responses:
+        "200":
+          description: Vote recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoteResponse"
+
+  /restaurants/search:
+    get:
+      operationId: searchRestaurants
+      tags: [restaurants]
+      summary: Search restaurants by location
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: radius
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [restaurant, cafe, bar]
+      responses:
+        "200":
+          description: Restaurants found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Restaurant"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error]
+
+    GoogleAuthRequest:
+      type: object
+      properties:
+        idToken:
+          type: string
+        accessToken:
+          type: string
+      required: [idToken]
+
+    GuestAuthRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        avatar:
+          type: string
+      required: [name]
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+      required: [token, user]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        avatar:
+          type: string
+        provider:
+          type: string
+          enum: [google, guest]
+      required: [id, name, provider]
+
+    CreateGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        memberIds:
+          type: array
+          items:
+            type: string
+        venueType:
+          type: string
+          enum: [restaurant, cafe, bar]
+      required: [name, memberIds, venueType]
+
+    Group:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        creatorId:
+          type: string
+        venueType:
+          type: string
+          enum: [restaurant, cafe, bar]
+        status:
+          type: string
+          enum: [pending, swiping, waiting, completed]
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/GroupMember"
+        restaurantCount:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, name, creatorId, venueType, status, members]
+
+    GroupMember:
+      type: object
+      properties:
+        userId:
+          type: string
+        name:
+          type: string
+        avatar:
+          type: string
+        status:
+          type: string
+          enum: [invited, joined, done]
+        doneAt:
+          type: string
+      required: [userId, name, status]
+
+    StartSwipingRequest:
+      type: object
+      properties:
+        lat:
+          type: number
+        lng:
+          type: number
+        radius:
+          type: number
+        locationName:
+          type: string
+      required: [lat, lng, radius]
+
+    Restaurant:
+      type: object
+      properties:
+        id:
+          type: string
+        placeId:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+        rating:
+          type: number
+        reviewCount:
+          type: integer
+        priceLevel:
+          type: integer
+        photos:
+          type: array
+          items:
+            type: string
+        cuisine:
+          type: string
+        openNow:
+          type: boolean
+        distance:
+          type: number
+        menuItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/MenuItem"
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/Review"
+        lat:
+          type: number
+        lng:
+          type: number
+        mapsUrl:
+          type: string
+      required: [id, name, address]
+
+    MenuItem:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [dish, drink, dessert]
+        price:
+          type: string
+        photo:
+          type: string
+      required: [name, category]
+
+    Review:
+      type: object
+      properties:
+        authorName:
+          type: string
+        rating:
+          type: integer
+        text:
+          type: string
+        timeAgo:
+          type: string
+        authorPhoto:
+          type: string
+      required: [authorName, rating, text]
+
+    VoteRequest:
+      type: object
+      properties:
+        restaurantId:
+          type: string
+        liked:
+          type: boolean
+      required: [restaurantId, liked]
+
+    VoteResponse:
+      type: object
+      properties:
+        allDone:
+          type: boolean
+        doneCount:
+          type: integer
+        totalCount:
+          type: integer
+      required: [allDone, doneCount, totalCount]
+
+    RestaurantResult:
+      type: object
+      properties:
+        restaurant:
+          $ref: "#/components/schemas/Restaurant"
+        likeCount:
+          type: integer
+        dislikeCount:
+          type: integer
+        totalVotes:
+          type: integer
+        score:
+          type: number
+      required: [restaurant, likeCount, dislikeCount, totalVotes, score]
